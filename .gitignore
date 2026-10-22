@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local data and secrets: audit databases, HMAC keys and pseudonymised exports
+# must never be committed.
+*.db
+*.sqlite
+*.sqlite3
+*.key
+milaun.key
+pseudonymised*.csv
+pseudo*.csv
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

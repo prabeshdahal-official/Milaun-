@@ -1,0 +1,29 @@
+{
+  "weights": {
+    "bias": -7.43930361,
+    "key_sim": 1.08150499,
+    "skeleton_sim": 1.65182439,
+    "key_dice": 1.72407346,
+    "skeleton_dice": 2.6188867,
+    "token_min_sim": 2.36742651,
+    "first_token_sim": 0.52178299,
+    "last_token_sim": 0.0,
+    "latin_sim": 0.0
+  },
+  "metadata": {
+    "trained_on": "benchmarks/synth.py dev/train split",
+    "n_train": 1131,
+    "seed": 20261022,
+    "features": [
+      "key_sim",
+      "skeleton_sim",
+      "key_dice",
+      "skeleton_dice",
+      "token_min_sim",
+      "first_token_sim",
+      "last_token_sim",
+      "latin_sim"
+    ],
+    "note": "synthetic benchmark; refit on your own labelled pairs before production use"
+  }
+}

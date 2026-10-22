@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use Milaun in research or in a deployed system, please cite it as below."
+title: "Milaun: offline record linkage for Nepali names across Devanagari and Latin script"
+abstract: >-
+  Milaun compares Nepali personal names written in Devanagari or Latin script and
+  returns a calibrated probability that two records describe the same person. It
+  combines a Devanagari-native phonetic key, a consonant-skeleton projection,
+  blocking, and probit-calibrated triage, and runs offline with no third-party
+  dependencies.
+authors:
+  - family-names: Dahal
+    given-names: Prabesh
+    city: Kathmandu
+    country: NP
+type: software
+license: MIT
+version: 0.1.0
+date-released: "2026-10-22"
+keywords:
+  - record linkage
+  - entity resolution
+  - Nepali
+  - Devanagari
+  - phonetic matching
+  - low-resource languages
+  - public-interest technology
+repository-code: "https://github.com/prabeshdahal/milaun"

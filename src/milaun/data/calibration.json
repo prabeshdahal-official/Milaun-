@@ -1,0 +1,12 @@
+{
+  "method": "platt",
+  "params": {
+    "a": 3.15154858015142,
+    "b": -3.0696122230824603
+  },
+  "metadata": {
+    "fitted_on": "benchmarks/synth.py dev/calib split",
+    "n_calib": 301,
+    "ece_in_sample": 0.025325
+  }
+}

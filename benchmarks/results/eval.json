@@ -1,0 +1,496 @@
+{
+  "tool": {
+    "name": "milaun",
+    "version": "0.1.0"
+  },
+  "dataset": {
+    "seed_file": "benchmarks/data/seed_names.csv",
+    "identities": 100,
+    "seed": 20261022,
+    "dev_test_pairs": 358,
+    "dev_test_positives": 120,
+    "hard_test_pairs": 1792,
+    "hard_test_positives": 600,
+    "note": "synthetic variants generated from documented orthographic operations"
+  },
+  "model": {
+    "thresholds": {
+      "auto": 0.9,
+      "review": 0.55
+    },
+    "metadata": {
+      "trained_on": "benchmarks/synth.py dev/train split",
+      "n_train": 1131,
+      "seed": 20261022,
+      "features": [
+        "key_sim",
+        "skeleton_sim",
+        "key_dice",
+        "skeleton_dice",
+        "token_min_sim",
+        "first_token_sim",
+        "last_token_sim",
+        "latin_sim"
+      ],
+      "note": "synthetic benchmark; refit on your own labelled pairs before production use",
+      "calibration": {
+        "fitted_on": "benchmarks/synth.py dev/calib split",
+        "n_calib": 301,
+        "ece_in_sample": 0.025325
+      }
+    },
+    "dev_test": {
+      "n_pairs": 358,
+      "n_positives": 120,
+      "n_negatives": 238,
+      "at_auto": {
+        "threshold": 0.9,
+        "tp": 104,
+        "fp": 0,
+        "fn": 16,
+        "tn": 238,
+        "precision": 1.0,
+        "recall": 0.8667,
+        "f1": 0.9286,
+        "false_positive_rate": 0.0
+      },
+      "at_review": {
+        "threshold": 0.55,
+        "tp": 109,
+        "fp": 6,
+        "fn": 11,
+        "tn": 232,
+        "precision": 0.9478,
+        "recall": 0.9083,
+        "f1": 0.9277,
+        "false_positive_rate": 0.0252
+      },
+      "review_band": {
+        "pairs": 11,
+        "share_of_pairs": 0.0307,
+        "positives": 5,
+        "share_of_positives": 0.0417
+      },
+      "average_precision": 0.9873,
+      "roc_auc": 0.9925,
+      "brier": 0.032,
+      "ece_10bin": 0.0298,
+      "reliability": [
+        {
+          "bin": "0.0-0.1",
+          "count": 223,
+          "mean_score": 0.005,
+          "observed_rate": 0.009
+        },
+        {
+          "bin": "0.1-0.2",
+          "count": 7,
+          "mean_score": 0.1292,
+          "observed_rate": 0.5714
+        },
+        {
+          "bin": "0.2-0.3",
+          "count": 6,
+          "mean_score": 0.2419,
+          "observed_rate": 0.3333
+        },
+        {
+          "bin": "0.4-0.5",
+          "count": 5,
+          "mean_score": 0.4397,
+          "observed_rate": 0.6
+        },
+        {
+          "bin": "0.5-0.6",
+          "count": 6,
+          "mean_score": 0.5563,
+          "observed_rate": 0.3333
+        },
+        {
+          "bin": "0.6-0.7",
+          "count": 3,
+          "mean_score": 0.6549,
+          "observed_rate": 0.0
+        },
+        {
+          "bin": "0.7-0.8",
+          "count": 3,
+          "mean_score": 0.7825,
+          "observed_rate": 0.6667
+        },
+        {
+          "bin": "0.8-0.9",
+          "count": 1,
+          "mean_score": 0.8261,
+          "observed_rate": 1.0
+        },
+        {
+          "bin": "0.9-1.0",
+          "count": 104,
+          "mean_score": 0.9854,
+          "observed_rate": 1.0
+        }
+      ],
+      "score_range": {
+        "min": 0.0,
+        "max": 0.9925,
+        "median": 0.0
+      }
+    },
+    "hard_test": {
+      "n_pairs": 1792,
+      "n_positives": 600,
+      "n_negatives": 1192,
+      "at_auto": {
+        "threshold": 0.9,
+        "tp": 463,
+        "fp": 0,
+        "fn": 137,
+        "tn": 1192,
+        "precision": 1.0,
+        "recall": 0.7717,
+        "f1": 0.8711,
+        "false_positive_rate": 0.0
+      },
+      "at_review": {
+        "threshold": 0.55,
+        "tp": 487,
+        "fp": 17,
+        "fn": 113,
+        "tn": 1175,
+        "precision": 0.9663,
+        "recall": 0.8117,
+        "f1": 0.8822,
+        "false_positive_rate": 0.0143
+      },
+      "review_band": {
+        "pairs": 41,
+        "share_of_pairs": 0.0229,
+        "positives": 24,
+        "share_of_positives": 0.04
+      },
+      "average_precision": 0.9712,
+      "roc_auc": 0.9834,
+      "brier": 0.0537,
+      "ece_10bin": 0.0432,
+      "reliability": [
+        {
+          "bin": "0.0-0.1",
+          "count": 1133,
+          "mean_score": 0.0053,
+          "observed_rate": 0.0415
+        },
+        {
+          "bin": "0.1-0.2",
+          "count": 55,
+          "mean_score": 0.1515,
+          "observed_rate": 0.4182
+        },
+        {
+          "bin": "0.2-0.3",
+          "count": 22,
+          "mean_score": 0.2483,
+          "observed_rate": 0.3636
+        },
+        {
+          "bin": "0.3-0.4",
+          "count": 29,
+          "mean_score": 0.3525,
+          "observed_rate": 0.4828
+        },
+        {
+          "bin": "0.4-0.5",
+          "count": 42,
+          "mean_score": 0.436,
+          "observed_rate": 0.4286
+        },
+        {
+          "bin": "0.5-0.6",
+          "count": 13,
+          "mean_score": 0.5568,
+          "observed_rate": 0.4615
+        },
+        {
+          "bin": "0.6-0.7",
+          "count": 20,
+          "mean_score": 0.6456,
+          "observed_rate": 0.4
+        },
+        {
+          "bin": "0.7-0.8",
+          "count": 9,
+          "mean_score": 0.7464,
+          "observed_rate": 0.7778
+        },
+        {
+          "bin": "0.8-0.9",
+          "count": 6,
+          "mean_score": 0.8535,
+          "observed_rate": 1.0
+        },
+        {
+          "bin": "0.9-1.0",
+          "count": 463,
+          "mean_score": 0.9831,
+          "observed_rate": 1.0
+        }
+      ],
+      "score_range": {
+        "min": 0.0,
+        "max": 0.9925,
+        "median": 0.0
+      }
+    },
+    "errors_hard_test": {
+      "false_positives_at_auto": [],
+      "missed_positives_below_review": [
+        {
+          "left": "माया राणा",
+          "right": "Maya Rana",
+          "probability": 0.0,
+          "ops": [
+            "nukta_lat"
+          ]
+        },
+        {
+          "left": "उषा लामा",
+          "right": "Usha Lyamha",
+          "probability": 0.0001,
+          "ops": [
+            "typo_lat",
+            "typo_lat"
+          ]
+        },
+        {
+          "left": "अमृत राई",
+          "right": "Amrie Rai",
+          "probability": 0.0004,
+          "ops": [
+            "typo_lat"
+          ]
+        },
+        {
+          "left": "दुर्गा कुँवर",
+          "right": "Kunwar urga",
+          "probability": 0.0005,
+          "ops": [
+            "typo_lat",
+            "swap_tokens"
+          ]
+        },
+        {
+          "left": "माया राणा",
+          "right": "माया ाणा",
+          "probability": 0.002,
+          "ops": [
+            "typo_ne"
+          ]
+        },
+        {
+          "left": "नवराज ओझा",
+          "right": "Nabaraj Ooha",
+          "probability": 0.0027,
+          "ops": [
+            "typo_lat"
+          ]
+        },
+        {
+          "left": "जानकी मिश्र",
+          "right": "जानी मिशर",
+          "probability": 0.0065,
+          "ops": [
+            "halant_ne",
+            "typo_ne"
+          ]
+        },
+        {
+          "left": "राम बहादुर थापा",
+          "right": "Ram B. Thapa",
+          "probability": 0.0082,
+          "ops": [
+            "initial_middle"
+          ]
+        }
+      ],
+      "n_false_positives": 0,
+      "n_missed_below_review": 113
+    }
+  },
+  "performance": {
+    "pairs_scored": 2150,
+    "seconds": 0.568,
+    "pairs_per_second": 3783.3,
+    "milliseconds_per_pair": 0.264
+  },
+  "baselines": {
+    "exact": {
+      "threshold_tuned_on_dev_calib": 0.0,
+      "dev_test": {
+        "threshold": 0.0,
+        "tp": 120,
+        "fp": 238,
+        "fn": 0,
+        "tn": 0,
+        "precision": 0.3352,
+        "recall": 1.0,
+        "f1": 0.5021,
+        "false_positive_rate": 1.0
+      },
+      "hard_test": {
+        "threshold": 0.0,
+        "tp": 600,
+        "fp": 1192,
+        "fn": 0,
+        "tn": 0,
+        "precision": 0.3348,
+        "recall": 1.0,
+        "f1": 0.5017,
+        "false_positive_rate": 1.0
+      },
+      "hard_test_average_precision": 0.5543
+    },
+    "levenshtein": {
+      "threshold_tuned_on_dev_calib": 0.7143,
+      "dev_test": {
+        "threshold": 0.7143,
+        "tp": 92,
+        "fp": 39,
+        "fn": 28,
+        "tn": 199,
+        "precision": 0.7023,
+        "recall": 0.7667,
+        "f1": 0.7331,
+        "false_positive_rate": 0.1639
+      },
+      "hard_test": {
+        "threshold": 0.7143,
+        "tp": 447,
+        "fp": 211,
+        "fn": 153,
+        "tn": 981,
+        "precision": 0.6793,
+        "recall": 0.745,
+        "f1": 0.7107,
+        "false_positive_rate": 0.177
+      },
+      "hard_test_average_precision": 0.7396
+    },
+    "jaro_winkler": {
+      "threshold_tuned_on_dev_calib": 0.903,
+      "dev_test": {
+        "threshold": 0.903,
+        "tp": 87,
+        "fp": 42,
+        "fn": 33,
+        "tn": 196,
+        "precision": 0.6744,
+        "recall": 0.725,
+        "f1": 0.6988,
+        "false_positive_rate": 0.1765
+      },
+      "hard_test": {
+        "threshold": 0.903,
+        "tp": 417,
+        "fp": 213,
+        "fn": 183,
+        "tn": 979,
+        "precision": 0.6619,
+        "recall": 0.695,
+        "f1": 0.678,
+        "false_positive_rate": 0.1787
+      },
+      "hard_test_average_precision": 0.791
+    },
+    "soundex": {
+      "threshold_tuned_on_dev_calib": 1.0,
+      "dev_test": {
+        "threshold": 1.0,
+        "tp": 113,
+        "fp": 7,
+        "fn": 7,
+        "tn": 231,
+        "precision": 0.9417,
+        "recall": 0.9417,
+        "f1": 0.9417,
+        "false_positive_rate": 0.0294
+      },
+      "hard_test": {
+        "threshold": 1.0,
+        "tp": 473,
+        "fp": 51,
+        "fn": 127,
+        "tn": 1141,
+        "precision": 0.9027,
+        "recall": 0.7883,
+        "f1": 0.8416,
+        "false_positive_rate": 0.0428
+      },
+      "hard_test_average_precision": 0.7825
+    },
+    "latin_metaphone": {
+      "threshold_tuned_on_dev_calib": 0.7857,
+      "dev_test": {
+        "threshold": 0.7857,
+        "tp": 85,
+        "fp": 39,
+        "fn": 35,
+        "tn": 199,
+        "precision": 0.6855,
+        "recall": 0.7083,
+        "f1": 0.6967,
+        "false_positive_rate": 0.1639
+      },
+      "hard_test": {
+        "threshold": 0.7857,
+        "tp": 426,
+        "fp": 194,
+        "fn": 174,
+        "tn": 998,
+        "precision": 0.6871,
+        "recall": 0.71,
+        "f1": 0.6984,
+        "false_positive_rate": 0.1628
+      },
+      "hard_test_average_precision": 0.766
+    }
+  },
+  "blocking": {
+    "n_records": 180,
+    "n_keys": 228,
+    "n_candidate_pairs": 598,
+    "total_possible_pairs": 16110,
+    "reduction_ratio": 0.96288,
+    "pair_completeness": 1.0
+  },
+  "clusters": {
+    "records": 180,
+    "true_duplicate_pairs": 180,
+    "predicted_pairs": 141,
+    "pairwise_precision": 1.0,
+    "pairwise_recall": 0.7833,
+    "clusters": 59,
+    "pure_clusters": 59,
+    "total_identities": 60,
+    "cluster_purity": 1.0,
+    "review_pairs": 4,
+    "seconds": 0.712,
+    "peak_memory_kib": 323.7,
+    "blocking_stats": {
+      "n_records": 180,
+      "n_keys": 228,
+      "n_candidate_pairs": 598,
+      "total_possible_pairs": 16110,
+      "reduction_ratio": 0.96288,
+      "candidate_pairs": 598,
+      "auto_pairs": 141,
+      "review_pairs": 4,
+      "clusters": 59,
+      "clustered_records": 159
+    }
+  },
+  "homonym_probe": {
+    "pairs": 20,
+    "scored_above_auto": 20,
+    "note": "identical names belonging to different people are indistinguishable from names alone; this is the irreducible error floor of any name-only matcher"
+  }
+}

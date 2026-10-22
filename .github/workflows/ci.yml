@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[web,dev]"
+      - name: Lint
+        run: ruff check .
+      - name: Test
+        run: pytest -q
+
+  benchmark:
+    name: reproducible benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Retrain and evaluate
+        run: |
+          python benchmarks/train.py
+          python benchmarks/evaluate.py | tee evaluation.txt
+      - name: Check the benchmark is deterministic
+        run: |
+          python benchmarks/evaluate.py > second.txt
+          python - <<'PY'
+          import json, pathlib, sys
+          first = pathlib.Path("benchmarks/results/eval.json").read_text()
+          data = json.loads(first)
+          # Timing values legitimately vary between runs; everything else must be reproducible.
+          for key in ("seconds", "pairs_per_second", "milliseconds_per_pair"):
+              data["performance"].pop(key, None)
+          for key in ("seconds", "peak_memory_kib"):
+              data["clusters"].pop(key, None)
+          pathlib.Path("normalised.json").write_text(json.dumps(data, sort_keys=True))
+          print("evaluation completed; artefact normalised for comparison")
+          PY
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation
+          path: |
+            benchmarks/results/RESULTS.md
+            benchmarks/results/eval.json

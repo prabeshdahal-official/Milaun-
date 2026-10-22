@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Milaun - Nepali name matching</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fbfaf7;
+    --surface: #ffffff;
+    --text: #14181f;
+    --muted: #4a5361;
+    --border: #c9cfd8;
+    --accent: #0b5c4b;
+    --accent-weak: #d9ece6;
+    --warn: #7a4a00;
+    --warn-weak: #f7e7c6;
+    --danger: #8c1d18;
+    --danger-weak: #f7dcd9;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10151b;
+      --surface: #171e26;
+      --text: #eef2f6;
+      --muted: #b3bdc9;
+      --border: #38434f;
+      --accent: #7fd8bf;
+      --accent-weak: #17332c;
+      --warn: #f0c274;
+      --warn-weak: #33290f;
+      --danger: #f2a7a1;
+      --danger-weak: #3a1c1a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", "Noto Sans Devanagari", sans-serif;
+  }
+  header, main, footer { max-width: 900px; margin: 0 auto; padding: 0 20px; }
+  header { padding-top: 40px; padding-bottom: 8px; }
+  h1 { font-size: 2rem; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .devanagari { font-family: "Noto Sans Devanagari", "Mangal", system-ui, sans-serif; }
+  .lede { margin: 0; color: var(--muted); max-width: 62ch; }
+  section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin: 24px 0;
+  }
+  h2 { font-size: 1.15rem; margin: 0 0 4px; }
+  .hint { color: var(--muted); font-size: 0.92rem; margin: 0 0 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  input[type="text"], textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font: inherit;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  textarea { min-height: 130px; resize: vertical; font-family: ui-monospace, "Cascadia Code", monospace; font-size: 0.92rem; }
+  input:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
+  button {
+    font: inherit;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--bg);
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button.secondary { background: transparent; color: var(--accent); }
+  button:hover { filter: brightness(1.07); }
+  .result { margin-top: 20px; }
+  .verdict { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .prob { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border: 1px solid currentColor;
+  }
+  .badge.match { color: var(--accent); background: var(--accent-weak); }
+  .badge.review { color: var(--warn); background: var(--warn-weak); }
+  .badge.distinct { color: var(--danger); background: var(--danger-weak); }
+  .bar { height: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; margin: 12px 0 18px; }
+  .bar > span { display: block; height: 100%; background: var(--accent); }
+  .bar.review > span { background: var(--warn); }
+  .bar.distinct > span { background: var(--danger); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  caption { text-align: left; color: var(--muted); padding-bottom: 8px; font-size: 0.88rem; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  th { font-weight: 600; }
+  td.num { font-variant-numeric: tabular-nums; }
+  ul.reasons { margin: 0 0 16px; padding-left: 18px; }
+  .keys { font-family: ui-monospace, "Cascadia Code", monospace; font-size: 0.85rem; color: var(--muted); }
+  .note { border-left: 3px solid var(--accent); padding: 8px 12px; color: var(--muted); font-size: 0.92rem; margin: 16px 0 0; }
+  .error { color: var(--danger); font-weight: 600; }
+  .cluster { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .cluster h3 { font-size: 0.95rem; margin: 0 0 6px; }
+  .cluster ul { margin: 0; padding-left: 18px; }
+  footer { padding: 8px 20px 48px; color: var(--muted); font-size: 0.88rem; }
+  code { font-family: ui-monospace, "Cascadia Code", monospace; font-size: 0.88em; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Milaun <span class="devanagari" lang="ne">मिलाउनु</span></h1>
+  <p class="lede">Decide whether two Nepali names describe the same person, even when one is
+  written in Devanagari and the other in Latin script. Runs entirely on this machine.</p>
+</header>
+
+<main>
+  <section aria-labelledby="compare-heading">
+    <h2 id="compare-heading">Compare two names</h2>
+    <p class="hint">Try a pair such as <span class="devanagari" lang="ne">प्रवेश दाहाल</span>
+      and <em>Prabesh Dahal</em>, or <em>Bhattarai</em> and <em>Bhattarai</em>.</p>
+    <form id="compare-form" novalidate>
+      <div class="grid">
+        <div>
+          <label for="left">Name A</label>
+          <input id="left" name="left" type="text" autocomplete="off" required
+                 value="प्रवेश दाहाल">
+        </div>
+        <div>
+          <label for="right">Name B</label>
+          <input id="right" name="right" type="text" autocomplete="off" required
+                 value="Prabesh Dahal">
+        </div>
+      </div>
+      <div class="actions">
+        <button type="submit">Compare</button>
+        <button type="button" class="secondary" id="swap">Swap</button>
+        <span id="compare-status" role="status" aria-live="polite"></span>
+      </div>
+    </form>
+    <div id="compare-result" class="result" aria-live="polite"></div>
+  </section>
+
+  <section aria-labelledby="dedupe-heading">
+    <h2 id="dedupe-heading">Find duplicates in a list</h2>
+    <p class="hint">One record per line as <code>id, name</code>. Ids are optional and are
+      generated when omitted. Nothing leaves the machine.</p>
+    <form id="dedupe-form" novalidate>
+      <label for="records">Records</label>
+      <textarea id="records" name="records" spellcheck="false">1, प्रवेश दाहाल
+2, Prabesh Dahal
+3, प्रवेश दाहल
+4, सीता शर्मा
+5, Sita Sharma
+6, राम बहादुर थापा
+7, Ram Bahadur Thapa
+8, रमेश ढकाल
+9, Ramesh Dhakal</textarea>
+      <div class="actions">
+        <button type="submit">Find duplicates</button>
+        <span id="dedupe-status" role="status" aria-live="polite"></span>
+      </div>
+    </form>
+    <div id="dedupe-result" class="result" aria-live="polite"></div>
+  </section>
+
+  <p class="note">Milaun returns a probability, not a verdict. Pairs in the
+  <strong>review</strong> band are the ones worth a human decision: automatic merging is
+  reserved for high-confidence matches, and every score can be inspected feature by feature.</p>
+</main>
+
+<footer>
+  <p>Milaun is open source (MIT). The phonetic key was designed for Nepali orthography and
+ romanisation habits; it is not a general-purpose transliterator. Scores are calibrated on a
+  synthetic benchmark, so calibrate again on your own data before automatic merging.</p>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  const compareForm = document.getElementById("compare-form");
+  const compareResult = document.getElementById("compare-result");
+  const compareStatus = document.getElementById("compare-status");
+  const dedupeForm = document.getElementById("dedupe-form");
+  const dedupeResult = document.getElementById("dedupe-result");
+  const dedupeStatus = document.getElementById("dedupe-status");
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function pct(value) {
+    return (value * 100).toFixed(1) + "%";
+  }
+
+  function renderCompare(data) {
+    compareResult.replaceChildren();
+    const verdict = el("div", "verdict");
+    verdict.append(
+      el("span", "prob", pct(data.probability)),
+      el("span", "badge " + data.band, data.band)
+    );
+    compareResult.append(verdict);
+
+    const bar = el("div", "bar " + data.band);
+    const fill = el("span");
+    fill.style.width = Math.max(2, data.probability * 100) + "%";
+    bar.append(fill);
+    bar.setAttribute("role", "img");
+    bar.setAttribute("aria-label", "Match probability " + pct(data.probability));
+    compareResult.append(bar);
+
+    const reasons = el("ul", "reasons");
+    data.reasons.forEach(function (reason) { reasons.append(el("li", "", reason)); });
+    compareResult.append(reasons);
+
+    const table = el("table");
+    const caption = el("caption", "", "Feature values for this pair");
+    table.append(caption);
+    const head = el("tr");
+    ["Feature", "Value"].forEach(function (name) { head.append(el("th", "", name)); });
+    const thead = document.createElement("thead");
+    thead.append(head);
+    table.append(thead);
+    const tbody = document.createElement("tbody");
+    Object.keys(data.features).forEach(function (name) {
+      const row = el("tr");
+      row.append(el("th", "", name), el("td", "num", data.features[name].toFixed(3)));
+      tbody.append(row);
+    });
+    table.append(tbody);
+    compareResult.append(table);
+
+    const keys = el("p", "keys");
+    keys.textContent = "A: " + data.keys_a.key + " [" + data.keys_a.skeleton + "]  ·  B: " +
+      data.keys_b.key + " [" + data.keys_b.skeleton + "]";
+    compareResult.append(keys);
+  }
+
+  function renderDedupe(data) {
+    dedupeResult.replaceChildren();
+    const stats = data.stats;
+    dedupeResult.append(el("p", "", data.clusters.length + " duplicate cluster(s) across " +
+      stats.clustered_records + " of " + stats.n_records + " records; " +
+      stats.candidate_pairs + " candidate pairs compared after blocking."));
+    if (!data.clusters.length) {
+      dedupeResult.append(el("p", "hint", "No pair reached the automatic-match threshold."));
+    }
+    data.clusters.forEach(function (cluster) {
+      const box = el("div", "cluster");
+      box.append(el("h3", "", "Cluster " + cluster.cluster_id + " · size " +
+        cluster.size + " · min p=" + cluster.min_probability.toFixed(3)));
+      const list = el("ul");
+      cluster.members.forEach(function (member, index) {
+        list.append(el("li", "", member + " — " + cluster.names[index]));
+      });
+      box.append(list);
+      dedupeResult.append(box);
+    });
+    if (data.review_pairs.length) {
+      dedupeResult.append(el("p", "hint", data.review_pairs.length +
+        " pair(s) fell in the review band and were not merged."));
+    }
+  }
+
+  async function postJSON(url, payload) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+      let detail = "Request failed (" + response.status + ")";
+      try {
+        const body = await response.json();
+        if (body.detail) detail = typeof body.detail === "string" ? body.detail : detail;
+      } catch (err) { /* keep default */ }
+      throw new Error(detail);
+    }
+    return response.json();
+  }
+
+  compareForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    const left = document.getElementById("left").value.trim();
+    const right = document.getElementById("right").value.trim();
+    if (!left || !right) {
+      compareStatus.textContent = "Enter both names.";
+      compareStatus.className = "error";
+      return;
+    }
+    compareStatus.className = "";
+    compareStatus.textContent = "Comparing…";
+    try {
+      renderCompare(await postJSON("/api/compare", { left: left, right: right }));
+      compareStatus.textContent = "";
+    } catch (error) {
+      compareStatus.className = "error";
+      compareStatus.textContent = error.message;
+    }
+  });
+
+  document.getElementById("swap").addEventListener("click", function () {
+    const left = document.getElementById("left");
+    const right = document.getElementById("right");
+    const value = left.value;
+    left.value = right.value;
+    right.value = value;
+  });
+
+  dedupeForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    const lines = document.getElementById("records").value.split(/\r?\n/);
+    const records = [];
+    lines.forEach(function (line, index) {
+      if (!line.trim()) return;
+      const comma = line.indexOf(",");
+      if (comma === -1) {
+        records.push({ id: "row-" + (index + 1), name: line.trim() });
+      } else {
+        records.push({
+          id: line.slice(0, comma).trim() || "row-" + (index + 1),
+          name: line.slice(comma + 1).trim()
+        });
+      }
+    });
+    if (!records.length) {
+      dedupeStatus.className = "error";
+      dedupeStatus.textContent = "Add at least one record.";
+      return;
+    }
+    dedupeStatus.className = "";
+    dedupeStatus.textContent = "Scanning " + records.length + " records…";
+    try {
+      renderDedupe(await postJSON("/api/dedupe", { records: records }));
+      dedupeStatus.textContent = "";
+    } catch (error) {
+      dedupeStatus.className = "error";
+      dedupeStatus.textContent = error.message;
+    }
+  });
+})();
+</script>
+</body>
+</html>
