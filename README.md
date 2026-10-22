@@ -1,182 +1,195 @@
-﻿# Milaun <span lang="ne">à¤®à¤¿à¤²à¤¾à¤‰à¤¨à¥</span>
+# Milaun (मिलाउनु)
 
-**Offline record linkage for Nepali names across Devanagari and Latin script.**
+**Offline record linkage for Nepali names written in Devanagari and Latin script.**
 
-Milaun (Nepali *milÄunu*, "to match") decides whether two name records describe the
-same person when one is written `à¤ªà¥à¤°à¤µà¥‡à¤¶ à¤¦à¤¾à¤¹à¤¾à¤²` and the other `Prabesh Dahal`. It runs
-on a laptop with no GPU, no network access and no third-party dependencies, and it
-returns a *calibrated probability* plus the evidence behind it rather than a bare
-yes/no.
+Milaun helps determine whether two name records may refer to the same person when the names are written differently—for example, `प्रवेश दाहाल` and `Prabesh Dahal`. It is designed to run locally on modest hardware, without a GPU, network access, or third-party dependencies in its core package.
 
-```
-$ milaun compare "à¤ªà¥à¤°à¤µà¥‡à¤¶ à¤¦à¤¾à¤¹à¤¾à¤²" "Prabesh Dahal"
+Instead of returning only a yes/no answer, Milaun provides a score, a decision band, and human-readable evidence for the comparison.
+
+```text
+$ milaun compare "प्रवेश दाहाल" "Prabesh Dahal"
 Probability: 0.9920  band=match
-                'à¤ªà¥à¤°à¤µà¥‡à¤¶ à¤¦à¤¾à¤¹à¤¾à¤²' -> key=DAHALPRABES skeleton=DHLPRBS
-                'Prabesh Dahal' -> key=DAHALPRABES skeleton=DHLPRBS
+  'प्रवेश दाहाल' -> key=DAHALPRABES skeleton=DHLPRBS
+  'Prabesh Dahal' -> key=DAHALPRABES skeleton=DHLPRBS
 Reasons:
   - Phonetic keys are identical.
   - The family-name token matches.
   - The given-name token matches.
 
-$ milaun compare "à¤¸à¥€à¤¤à¤¾ à¤¶à¤°à¥à¤®à¤¾" "Sita Karki"
+$ milaun compare "सीता शर्मा" "Sita Karki"
 Probability: 0.0000  band=distinct
 ```
 
----
+> **Important:** Milaun is a record-linkage aid, not proof of identity. Its current benchmark is synthetic; real-world use requires evaluation and calibration on appropriately governed, labelled data from the target setting.
 
-## The problem
+## Why Milaun?
 
-Nepali identity records are split across two writing systems, and there is no single
-romanisation standard. The same person appears as `Prabesh`, `Pravesh`, `Prabes` or
-`à¤ªà¥à¤°à¤µà¥‡à¤¶`; a surname may be `Dahal`, `DÄhal`, `à¤¦à¤¾à¤¹à¤¾à¤²` or `à¤¦à¤¾à¤¹à¤²`. Clerks transcribe by ear,
-so aspiration (`Khadka`/`Kadka`), retroflex and dental stops (`à¤Ÿ`/`à¤¤`), vowel length
-(`à¤¿`/`à¥€`) and the Nepali final schwa (`Ramesh`/`Ramesha`) all drift.
+Nepali names appear in records across two writing systems, and romanisation is not consistent. The same person may be recorded as `Prabesh`, `Pravesh`, `Prabes`, or `प्रवेश`. Surnames can also vary, as in `Dahal`, `Dāhal`, `दाहाल`, and `दाहल`.
 
-This is not cosmetic. Nepal Rastra Bank now requires banks to update every customer's
-KYC record with National ID details, and the state has begun linking its citizenship
-and national-ID databases â€” both depend on matching a person across records that were
-typed by different people at different times ([ICT Frame, July 2026](https://ictframe.com/nrb-mandates-national-id-update/);
-[ID Tech Wire, March 2026](https://idtechwire.com/nepal-establishes-interoperability-between-citizenship-and-national-id-systems/)).
-Citizens already report difficulty and delay obtaining and correcting identity
-documents ([NepalNews, August 2022](https://english.nepalnews.com/s/nation/citizens-facing-problems-getting-nic/)).
+These differences are often caused by ordinary data-entry and transcription variation: aspiration (`Khadka` / `Kadka`), retroflex and dental consonants (`ट` / `त`), vowel length (`ि` / `ी`), and the final schwa sometimes represented in Latin spellings (`Ramesh` / `Ramesha`). A generic string comparison can miss valid matches or incorrectly join unrelated people.
 
-The tooling gap is specific. General record-linkage libraries expose edit distance,
-Jaro-Winkler and Latin phonetic codes; their comparator catalogue contains no
-Devanagari-aware phonetic key, and phonetic codes such as Soundex are defined for
-English spelling ([recordlinkage comparison docs](https://recordlinkage.readthedocs.io/en/latest/ref-compare.html)).
-An organisation that wants to deduplicate a Nepali beneficiary list today must either
-transliterate by hand or accept a large false-merge rate.
+This matters for organisations that maintain records across systems. Banks, clinics, cooperatives, NGOs, municipalities, and researchers may need to reconcile records while keeping sensitive data on local machines. Relevant context includes [Nepal Rastra Bank's National ID KYC update coverage](https://ictframe.com/nrb-mandates-national-id-update/), reporting on links between citizenship and national-ID systems ([ID Tech Wire](https://idtechwire.com/nepal-establishes-interoperability-between-citizenship-and-national-id-systems/)), and reporting on difficulties obtaining or correcting identity documents ([NepalNews](https://english.nepalnews.com/s/nation/citizens-facing-problems-getting-nic/)).
 
-**Who this is for:** clinics and hospitals reconciling patient registers, microfinance
-and cooperative ledgers, NGOs deduplicating beneficiary lists, municipal registries,
-and researchers linking survey waves. All of them work offline, on modest hardware,
-with data they are not allowed to upload.
+General record-linkage tools commonly offer edit distance, Jaro–Winkler, and Latin-oriented phonetic comparisons. Milaun focuses on the specific problem of comparing Nepali names across Devanagari and Latin script.
 
-## What Milaun does differently
+### Intended use cases
 
-1. **A Devanagari-native phonetic key.** Both scripts are projected into one canonical
-   symbol space; aspiration, retroflex/dental contrast, sibilants, vowel length and the
-   `à¤µ`/`b`/`w` merger are collapsed deliberately, because Nepali typists collapse them.
-2. **Two projections, not one.** Alongside the vowel-bearing key, a *consonant skeleton*
-   absorbs epenthetic schwa â€” the single largest source of mismatch in Nepali names
-   (`à¤¸à¤¾à¤ªà¤•à¥‹à¤Ÿà¤¾` vs `Sapkota`). Neither key alone is sufficient; the model combines them.
-3. **Calibrated output.** The score is mapped through a fitted calibration curve and
-   reported with expected calibration error, so "0.90" has an operational meaning.
-4. **Three-band triage.** Automatic match, human review, distinct â€” plus a Bayes
-   decision rule for asymmetric costs (a missed duplicate usually costs more than a
-   review).
-5. **Blocking with a measured recall cost.** Candidate generation reduces the pair space
-   by 96% on the benchmark with 100% pair completeness, and the number is reported
-   rather than assumed.
-6. **No dependencies, no network.** The core is pure Python standard library. Nothing
-   leaves the machine; there is no telemetry and no model download.
+- Hospitals reconciling patient registers
+- Microfinance institutions and cooperatives matching client records
+- NGOs deduplicating beneficiary lists
+- Municipal registries comparing records across systems
+- Researchers linking records across survey waves
 
-## Install
+These use cases often involve sensitive information, limited computing resources, and environments where uploading data to an external service is not appropriate.
+
+## What makes Milaun different?
+
+1. **Devanagari-aware phonetic representation.** Names from both scripts are mapped into a shared canonical symbol space. The rules deliberately account for selected distinctions that frequently vary in Nepali data entry, including aspiration, retroflex/dental contrasts, sibilants, vowel length, and some `व` / `b` / `w` variation.
+2. **Two complementary keys.** Milaun derives a vowel-bearing phonetic key and a consonant skeleton. The skeleton helps tolerate vowel and final-schwa variation, such as `सापकोटा` and `Sapkota`. The matcher combines evidence from both rather than relying on either one alone.
+3. **Calibrated scoring.** A fitted calibration step maps the model score to a probability estimate. Evaluation reports expected calibration error (ECE) and Brier score. Calibration quality still depends on the data used to fit and evaluate it.
+4. **Three-band triage.** Results are grouped into automatic match, human review, and distinct bands. A Bayes decision rule can also account for different costs of false matches and missed duplicates.
+5. **Measured candidate blocking.** Candidate generation reduces the number of comparisons. The included synthetic benchmark reports both the reduction and pair completeness, rather than assuming that blocking is lossless.
+6. **Local-first operation.** The core uses the Python standard library and does not make network calls. There is no telemetry or model download in the core workflow.
+
+## Installation
+
+Milaun supports Python 3.10 and later.
 
 ```bash
 git clone https://github.com/prabeshdahal/milaun.git
 cd milaun
 python -m venv .venv
-# Windows: .venv\Scripts\activate
+```
+
+Activate the environment:
+
+```bash
+# Windows
+.venv\Scripts\activate
+
+# macOS / Linux
 source .venv/bin/activate
+```
+
+Install the package with the optional web interface and development tools:
+
+```bash
 pip install -e ".[web,dev]"
 ```
 
-Python 3.10+. The core package needs no third-party libraries; `[web]` adds FastAPI and
-Uvicorn, `[dev]` adds pytest and ruff.
+The core package does not require third-party libraries. The `web` extra installs FastAPI and Uvicorn; the `dev` extra installs pytest and Ruff.
 
-## Use
+## Usage
 
 ### Command line
 
+Compare a pair of names and inspect the evidence:
+
 ```bash
-# Explain a single pair (add --json for machine-readable output)
-milaun compare "à¤ªà¥à¤°à¤µà¥‡à¤¶ à¤¦à¤¾à¤¹à¤¾à¤²" "Prabesh Dahal"
+milaun compare "प्रवेश दाहाल" "Prabesh Dahal"
+```
 
-# Show the derived keys for debugging or research
+Return machine-readable JSON:
+
+```bash
+milaun compare "प्रवेश दाहाल" "Prabesh Dahal" --json
+```
+
+Inspect the derived key for a name:
+
+```bash
 milaun key "Bhattarai"
+```
 
-# Cluster duplicates inside one CSV
+Find duplicate clusters in a CSV file:
+
+```bash
 milaun dedupe examples/people.csv --name-col name --id-col id --out clusters.csv
+```
 
-# Link two CSV files across systems
+Link records across two CSV files:
+
+```bash
 milaun link left.csv right.csv --left-col name --right-col name --out pairs.csv
+```
 
-# Keep an audit trail (record ids only, never names)
+Store an audit trail containing record IDs rather than names:
+
+```bash
 milaun dedupe people.csv --store audit.db
+```
 
-# Replace a name column with keyed pseudonyms before sharing a file
+Replace a name column with keyed pseudonyms before sharing a file:
+
+```bash
 milaun pseudonymize people.csv --column name --key-file milaun.key --out shared.csv
+```
 
-# Local review UI on http://127.0.0.1:8000
+Start the local review interface:
+
+```bash
 milaun serve
 ```
 
-### Python
+The interface is served at `http://127.0.0.1:8000`.
+
+### Python API
 
 ```python
 from milaun import Matcher
 
 matcher = Matcher()
-result = matcher.compare("à¤ªà¥à¤°à¤µà¥‡à¤¶ à¤¦à¤¾à¤¹à¤¾à¤²", "Prabesh Dahal")
-print(result.probability, result.band)   # 0.992 match
+result = matcher.compare("प्रवेश दाहाल", "Prabesh Dahal")
+
+print(result.probability, result.band)
 print(result.reasons)
 
-registry = [
-    {"id": "p01", "name": "à¤ªà¥à¤°à¤µà¥‡à¤¶ à¤¦à¤¾à¤¹à¤¾à¤²"},
+records = [
+    {"id": "p01", "name": "प्रवेश दाहाल"},
     {"id": "p02", "name": "Prabesh Dahal"},
-    {"id": "p03", "name": "à¤¸à¥€à¤¤à¤¾ à¤¶à¤°à¥à¤®à¤¾"},
+    {"id": "p03", "name": "सीता शर्मा"},
     {"id": "p04", "name": "Sita Karki"},
 ]
-for cluster in matcher.dedupe(registry)["clusters"]:
+
+result = matcher.dedupe(records)
+for cluster in result["clusters"]:
     print(cluster["members"], cluster["names"])
 ```
 
-`dedupe` returns three bands' worth of information: `clusters` (auto-merged),
-`review_pairs` (needs a human) and `stats` (blocking and scoring counts).
+`dedupe` returns:
 
-### Demo
+- `clusters`: records assigned to automatic-match clusters
+- `review_pairs`: candidate pairs that need human review
+- `stats`: blocking and scoring statistics
 
-```
-$ python examples/demo.py
-Loaded 12 records from people.csv
+### Example output
 
+The included demo loads 12 sample records and checks selected pairs:
+
+```text
 Pairwise checks
 ------------------------------------------------------------------------
-  à¤ªà¥à¤°à¤µà¥‡à¤¶ à¤¦à¤¾à¤¹à¤¾à¤²           Prabesh Dahal          p=0.992  match
-  à¤¸à¥€à¤¤à¤¾ à¤¶à¤°à¥à¤®à¤¾             Sita Karki             p=0.000  distinct
-  à¤…à¤¨à¤¿à¤¤à¤¾ à¤¤à¤¾à¤®à¤¾à¤™            Anita Thapa            p=0.001  distinct
-  à¤°à¤®à¥‡à¤¶ à¤¢à¤•à¤¾à¤²              Ramesh Dhakal          p=0.992  match
-
-Duplicate clusters
-------------------------------------------------------------------------
-  cluster p01 (min p=0.992)
-    - p01: à¤ªà¥à¤°à¤µà¥‡à¤¶ à¤¦à¤¾à¤¹à¤¾à¤²
-    - p02: Prabesh Dahal
-    - p03: à¤ªà¥à¤°à¤µà¥‡à¤¶ à¤¦à¤¾à¤¹à¤²
-  cluster p04 (min p=0.992)
-    - p04: à¤¸à¥€à¤¤à¤¾ à¤¶à¤°à¥à¤®à¤¾
-    - p05: Sita Sharma
-  cluster p06 (min p=0.992)
-    - p06: à¤°à¤¾à¤® à¤¬à¤¹à¤¾à¤¦à¥à¤° à¤¥à¤¾à¤ªà¤¾
-    - p07: Ram Bahadur Thapa
-  cluster p08 (min p=0.992)
-    - p08: à¤°à¤®à¥‡à¤¶ à¤¢à¤•à¤¾à¤²
-    - p09: Ramesh Dhakal
-
-4 clusters, 9 of 12 records clustered; 15 candidate pairs after blocking.
+  प्रवेश दाहाल             Prabesh Dahal          p=0.992  match
+  सीता शर्मा               Sita Karki             p=0.000  distinct
+  अनिता तामाङ              Anita Thapa            p=0.001  distinct
+  रमेश ढकाल                Ramesh Dhakal          p=0.992  match
 ```
 
-Note what did *not* happen: `Sita Sharma` was not merged with `Sita Karki`, and
-`Anita Tamang` was not merged with `Anita Thapa`. A shared given name is weak evidence,
-and the benchmark contains explicit same-given/different-family negatives so the model
-cannot learn otherwise.
+It also groups likely duplicates into clusters. In the sample data, `Sita Sharma` is not merged with `Sita Karki`, and `Anita Tamang` is not merged with `Anita Thapa`. A shared given name is weak evidence; the benchmark includes negative examples with the same given name and different surnames.
+
+Run the demo with:
+
+```bash
+python examples/demo.py
+```
+
+The exact output depends on the checked-out version and example data.
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    A[Raw name] --> B[Normalise<br/>NFC, digits, punctuation]
+    A[Raw name] --> B[Normalize: Unicode, digits, punctuation]
     B --> C{Script?}
     C -->|Devanagari| D[Devanagari state machine]
     C -->|Latin| E[Romanisation rules]
@@ -184,136 +197,124 @@ flowchart LR
     E --> F
     F --> G[Vowel-bearing key]
     F --> H[Consonant skeleton]
-    G --> I[Pair features<br/>key, skeleton, Dice, tokens, Latin JW]
+    G --> I[Pair features]
     H --> I
-    I --> J[Logistic scorer<br/>IRLS, non-negative weights]
-    J --> K[Calibration<br/>Platt scaling]
+    I --> J[Logistic scorer]
+    J --> K[Calibration]
     K --> L{Probability}
-    L -->|>= 0.90| M[Auto-match]
-    L -->|0.55 - 0.90| N[Human review]
+    L -->|>= 0.90| M[Automatic match]
+    L -->|0.55–0.90| N[Human review]
     L -->|< 0.55| O[Distinct]
 ```
 
-| Path | Responsibility |
-|---|---|
-| `src/milaun/charset.py` | Unicode tables and the canonical symbol alphabet |
-| `src/milaun/normalize.py` | NFC, digits, punctuation, script detection |
-| `src/milaun/devanagari.py` | One state machine producing both projections |
-| `src/milaun/latin.py` | Ordered romanisation rules for Latin spellings |
-| `src/milaun/phonetic.py` | Token reduction, vowel-run folding, final schwa, keys |
-| `src/milaun/similarity.py` | Edit distance, Jaro-Winkler, Dice, pair features |
-| `src/milaun/blocking.py` | Prefix inverted index and pair completeness |
-| `src/milaun/model.py` | IRLS logistic regression, non-negative weights |
-| `src/milaun/calibration.py` | Platt scaling, isotonic option, ECE, Brier |
-| `src/milaun/matcher.py` | Public API: compare, dedupe, link, triage |
-| `src/milaun/store.py` | Append-only SQLite audit trail (ids only) |
-| `src/milaun/privacy.py` | HMAC pseudonyms, redaction, CSV injection guard |
-| `src/milaun/cli.py`, `api.py`, `web/` | CLI, local HTTP API, accessible review UI |
+The main modules are organised by responsibility:
 
-Design notes and trade-offs are in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md);
-the problem statement and success metrics are in [`docs/SPEC.md`](docs/SPEC.md).
+| Module | Responsibility |
+|---|---|
+| `src/milaun/charset.py` | Unicode tables and canonical symbol alphabet |
+| `src/milaun/normalize.py` | NFC normalization, digits, punctuation, and script detection |
+| `src/milaun/devanagari.py` | State machine that produces both phonetic projections |
+| `src/milaun/latin.py` | Ordered romanisation rules for Latin spellings |
+| `src/milaun/phonetic.py` | Token reduction, vowel-run folding, final schwa, and key generation |
+| `src/milaun/similarity.py` | Edit distance, Jaro–Winkler, Dice similarity, and pair features |
+| `src/milaun/blocking.py` | Prefix inverted index and pair-completeness measurement |
+| `src/milaun/model.py` | IRLS logistic regression with non-negative weights |
+| `src/milaun/calibration.py` | Platt scaling, optional isotonic calibration, ECE, and Brier score |
+| `src/milaun/matcher.py` | Public API for compare, dedupe, link, and triage |
+| `src/milaun/store.py` | Append-only SQLite audit trail using record IDs only |
+| `src/milaun/privacy.py` | HMAC pseudonyms, redaction, and CSV-injection protection |
+| `src/milaun/cli.py`, `api.py`, `web/` | CLI, local HTTP API, and review interface |
+
+For implementation decisions and requirements, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/SPEC.md`](docs/SPEC.md).
 
 ## Evaluation
 
-Benchmark: 100 hand-written seed identities, expanded into pairs by documented
-orthographic operations. `dev` operations (aspiration, retroflex/dental, vowel length,
-nasal marks, schwa, romanisation choices) are used for training and calibration.
-`hard` operations (nukta, halant removal, sibilant swaps, character typos) are held out
-entirely. Negatives include minimal pairs (same surname, one consonant apart) and
-same-given-name/different-surname pairs.
+### Benchmark design
 
-| Split | Precision @0.90 | Recall @0.90 | F1 | PR-AUC | ROC-AUC | ECE | Brier |
-|---|---|---|---|---|---|---|---|
-| dev-test (in-distribution) | 1.000 | 0.867 | 0.929 | 0.987 | 0.993 | 0.030 | 0.032 |
-| hard-test (held-out ops) | 1.000 | 0.772 | 0.871 | 0.971 | 0.983 | 0.043 | 0.054 |
+The included benchmark starts with 100 hand-written seed identities and generates comparison pairs using documented spelling transformations. The `dev` transformations—such as aspiration, retroflex/dental variation, vowel length, nasal marks, schwa variation, and romanisation choices—are used for training and calibration. The `hard` transformations—such as nukta changes, halant removal, sibilant substitutions, and character typos—are held out for evaluation.
+
+Negative examples include minimal pairs (for example, surnames with a one-consonant difference) and pairs sharing a given name but having different surnames.
+
+### Reported results
+
+| Split | Precision @ 0.90 | Recall @ 0.90 | F1 | PR-AUC | ROC-AUC | ECE | Brier |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Dev-test (in-distribution) | 1.000 | 0.867 | 0.929 | 0.987 | 0.993 | 0.030 | 0.032 |
+| Hard-test (held-out transformations) | 1.000 | 0.772 | 0.871 | 0.971 | 0.983 | 0.043 | 0.054 |
 
 Baselines were tuned on the calibration split and then frozen:
 
 | Method | Precision | Recall | F1 | PR-AUC |
-|---|---|---|---|---|
-| exact match | 0.335 | 1.000 | 0.502 | 0.554 |
-| Levenshtein â‰¥ Ï„ | 0.679 | 0.745 | 0.711 | 0.740 |
-| Jaro-Winkler â‰¥ Ï„ | 0.662 | 0.695 | 0.678 | 0.791 |
+|---|---:|---:|---:|---:|
+| Exact match | 0.335 | 1.000 | 0.502 | 0.554 |
+| Levenshtein threshold | 0.679 | 0.745 | 0.711 | 0.740 |
+| Jaro–Winkler threshold | 0.662 | 0.695 | 0.678 | 0.791 |
 | Soundex | 0.903 | 0.788 | 0.842 | 0.782 |
 | Latin-only phonetic key | 0.687 | 0.710 | 0.698 | 0.766 |
-| **Milaun** | **1.000** | 0.772 | **0.871** | **0.971** |
+| **Milaun** | **1.000** | **0.772** | **0.871** | **0.971** |
 
-Other measured properties on the 180-record clustering task: pairwise precision 1.000,
-pairwise recall 0.783, cluster purity 1.000 (59/59), under a second of runtime and a few hundred KiB of peak memory;
-blocking keeps 100% of true pairs while removing 96.3% of comparisons; scoring runs at
-about 3,700 pairs per second on one core.
+On the reported 180-record clustering task, the project reports pairwise precision of 1.000, pairwise recall of 0.783, cluster purity of 1.000 (59/59), runtime below one second, and peak memory use of a few hundred KiB. Blocking retained all true pairs in that benchmark while reducing comparisons by 96.3%; scoring ran at approximately 3,700 pairs per second on one core.
 
-Reproduce everything:
+Reproduce the evaluation with:
 
 ```bash
-python benchmarks/train.py       # refit weights + calibration (~20 s)
-python benchmarks/evaluate.py    # writes benchmarks/results/{eval.json,RESULTS.md}
+python benchmarks/train.py
+python benchmarks/evaluate.py
 ```
 
-**Read this before quoting the numbers.** The dataset is synthetic and derived from
-rules, not from real registries. High scores mean "robust to the transformations we
-encoded", not "safe to auto-merge in a hospital". A field deployment must re-calibrate
-on labelled pairs from its own data. The methodology, threats to validity and the
-irreducible homonym floor are documented in [`docs/EVALUATION.md`](docs/EVALUATION.md).
+The training script refits model weights and calibration. The evaluation script writes `benchmarks/results/eval.json` and `benchmarks/results/RESULTS.md`.
+
+> **How to interpret these numbers:** The benchmark is synthetic and generated from predefined spelling rules; it is not a sample of real government, hospital, bank, or NGO registries. These results measure robustness to the transformations represented in the benchmark, not field accuracy or readiness for automatic identity decisions. Before deployment, evaluate and recalibrate the matcher with labelled, consented, de-identified examples representative of the intended data. See [`docs/EVALUATION.md`](docs/EVALUATION.md) for methodology, threats to validity, and the homonym limitation.
 
 ## Limitations
 
-- **Names alone cannot separate homonyms.** Two different people called `Sita Sharma`
-  score 1.0 by construction (measured: 20/20 in the probe). Combine with date of birth,
-  address, guardian name or an identifier; Milaun is a blocking and triage aid, not a
-  biometric.
-- **The benchmark is synthetic.** It cannot estimate field accuracy. Real error
-  distributions are correlated (a single clerk mistypes consistently) and include
-  nicknames, clan names and honorifics that the generator does not model.
-- **Nepali-centric.** The rule set was designed for Nepali orthography and Nepali
-  romanisation habits. Hindi, Marathi or Bengali names will partially work but were not
-  evaluated; the `à¤µ`/`b` merger in particular is a Nepali choice.
-- **No learned transliteration.** Rare spellings that break the phonetic rules are
-  handled by similarity features, not by a trained model. See the failure examples in
-  `benchmarks/results/eval.json`.
-- **Conservative by design.** At the 0.90 band, roughly a fifth of true matches in the
-  held-out split are not auto-merged; most land in review. That is the intended
-  trade-off for identity data.
+- **Names cannot disambiguate every person.** Two different people named `Sita Sharma` can receive a perfect name-match score. Combine name evidence with other appropriate fields—such as date of birth, address, guardian name, or an identifier—when permitted. Milaun is a record-linkage and triage tool, not a biometric or proof of identity.
+- **The benchmark is synthetic.** It cannot estimate accuracy on real records. Real-world errors may be correlated and may include nicknames, clan names, honorifics, and spelling patterns not covered by the generator.
+- **The rules are Nepali-centric.** Other Indic-language names may partially work, but Hindi, Marathi, and Bengali names have not been evaluated. Some mappings, including the `व` / `b` / `w` merger, are deliberate choices for Nepali usage.
+- **No learned transliteration model is included.** Rare spellings that do not follow the rules are handled through similarity features rather than a trained transliteration model.
+- **Automatic matching is conservative.** At the 0.90 threshold, the held-out benchmark does not auto-match roughly one-fifth of true matches. Many are sent to review; this is an intentional trade-off to reduce risky automatic merges.
 
 ## Security and privacy
 
-- No network calls anywhere in the core or CLI; the web UI binds to `127.0.0.1`.
-- The audit store has **no name column** â€” only record ids, probabilities and features.
-- `pseudonymize` produces keyed HMAC-SHA256 pseudonyms for sharing datasets; the key file
-  is created with owner-only permissions.
-- CSV export neutralises spreadsheet formula injection.
-- Threat model, including what pseudonymisation does *not* protect against, is in
-  [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md). Report vulnerabilities per
-  [`SECURITY.md`](SECURITY.md).
+- The core package and CLI do not make network calls; the web interface binds to `127.0.0.1`.
+- The audit store does not save a name column. It stores record IDs, probabilities, and features.
+- `pseudonymize` creates keyed HMAC-SHA256 pseudonyms. The key file is created with owner-only permissions where supported by the platform.
+- CSV exports neutralize spreadsheet formula injection.
+- Pseudonymisation does not make a dataset anonymous in every context. Review the threat model and protect input files, outputs, keys, backups, and logs appropriately.
 
-## Tests
+Read [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for the threat model and [`SECURITY.md`](SECURITY.md) for vulnerability reporting.
+
+## Tests and code quality
+
+Run the test suite and linter:
 
 ```bash
-pytest            # 127 tests, ~1 s
+pytest
 ruff check .
 ```
 
-The suite covers Unicode normalisation (including the combining-mark regression that a
-`\w`-based filter causes), cross-script key agreement, every similarity primitive,
-blocking recall, calibration, CLI exit codes, API validation, the audit store, and the
-benchmark's own guarantees (determinism, split isolation, tie-aware PR-AUC).
+The project README reports 127 tests. Coverage includes Unicode normalization, cross-script key agreement, similarity functions, blocking recall, calibration, CLI exit codes, API validation, the audit store, and benchmark guarantees such as determinism, split isolation, and tie-aware PR-AUC.
 
 ## Roadmap
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md). The short version: a small hand-labelled
-real-world evaluation set, a date-of-birth/address comparator, optional learned
-transliteration for rare spellings, and a Nepali-language UI. Beginner-friendly issues
-are listed in [`docs/GOOD_FIRST_ISSUES.md`](docs/GOOD_FIRST_ISSUES.md).
+See [`docs/ROADMAP.md`](docs/ROADMAP.md). Planned directions include:
+
+- A small, hand-labelled evaluation set based on real-world examples with appropriate consent and de-identification
+- Date-of-birth and address comparators
+- Optional learned transliteration for rare spellings
+- A Nepali-language user interface
+
+Beginner-friendly tasks are listed in [`docs/GOOD_FIRST_ISSUES.md`](docs/GOOD_FIRST_ISSUES.md).
 
 ## Contributing
 
-Contributions are welcome, especially from people with access to real (consented,
-de-identified) registry data who can report failures. Start with
-[`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+Contributions are welcome, especially from people who can report matching failures using real, consented, de-identified examples.
+
+Before contributing, read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). Please do not submit sensitive personal records or unconsented identity data in issues or pull requests.
 
 ## License
 
-MIT â€” see [`LICENSE`](LICENSE).
+Milaun is released under the MIT License. See [`LICENSE`](LICENSE).
 
 ## Citation
 
@@ -328,5 +329,4 @@ MIT â€” see [`LICENSE`](LICENSE).
 }
 ```
 
-A `CITATION.cff` is included for GitHub's citation widget.
-
+A `CITATION.cff` file is included for GitHub's citation widget.
